@@ -1,0 +1,15 @@
+{
+  "name": "niffler-stocks",
+  "version": "0.1.0",
+  "description": "Stock quotes for US-listed tickers via Nasdaq's public API. No API key needed.",
+  "license": "MIT",
+  "components": [
+    {
+      "name": "stocks",
+      "lang": "nim",
+      "main": "stocks/main.nim",
+      "defines": ["ssl"],
+      "description": "Real-time Nasdaq stock quotes and ticker search (no API key)"
+    }
+  ]
+}

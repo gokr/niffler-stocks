@@ -1,0 +1,74 @@
+name: verify
+
+# Verifies this package the way a real Niffler install does — by running
+# the harness itself (core + builder + plugins + cli) and driving it with
+# the cli component: `cli install` compiles every component from source
+# through the builder and spawns it, then `cli call` proves the tools
+# work. No binaries are published: installs always build from source
+# with the user's own toolchain.
+#
+# Runs on every PR (compile check only) and on tag pushes (full install
+# through the harness, since plugin_install pins the tagged ref).
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: stocks
+      - uses: actions/checkout@v4
+        with:
+          repository: gokr/niffler
+          path: niffler
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: stable
+      - name: System deps (what a real Niffler install needs)
+        run: |
+          sudo apt-get update && sudo apt-get install -y libclang-dev
+          git clone --depth 1 https://github.com/nats-io/nats.c /tmp/nats.c
+          cmake -S /tmp/nats.c -B /tmp/nats.c/build \
+            -DNATS_BUILD_WITH_TLS=OFF -DNATS_BUILD_STREAMING=OFF \
+            -DNATS_BUILD_EXAMPLES=OFF -DNATS_BUILD_LIB_ONLY=ON
+          cmake --build /tmp/nats.c/build -j2
+          sudo cmake --install /tmp/nats.c/build
+          echo /usr/local/lib | sudo tee /etc/ld.so.conf.d/libnats.conf >/dev/null
+          sudo ldconfig
+          cd niffler && nimble install -y -d
+      - name: Compile check (every PR and tag)
+        run: |
+          nim c --hints:off -d:release --path:niffler/sdk \
+            -o:/tmp/stocks-check stocks/stocks/main.nim
+      - name: Build the harness
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: niffler
+        run: make build
+      - name: Install the package through the harness itself
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: niffler
+        env:
+          NIF_STOCKS_REF: ${{ github.ref_name }}
+        run: |
+          NIF_AUTO_APPROVE=1 ./var/bin/niffler </dev/null >core.log 2>&1 &
+          CORE_PID=$!
+          for i in $(seq 1 60); do [ -f var/nats-url ] && break; sleep 1; done
+          if [ ! -f var/nats-url ]; then
+            echo "harness failed to start:"; tail -20 core.log; exit 1
+          fi
+          export NIF_NATS_URL=$(cat var/nats-url)
+          set -e
+          # preferred plugin CI: drive Niffler itself via the cli component
+          ./var/bin/cli install gokr/niffler-stocks@$NIF_STOCKS_REF
+          # validate the tools the spawned stocks component registered
+          ./var/bin/cli catalog | grep -q stock_quote
+          # prove the tool works end-to-end against the live Nasdaq API
+          ./var/bin/cli call stock_quote '{"symbol":"AAPL"}' |
+            grep -q '"price"'
+          echo "CI VERIFY OK"
+          kill $CORE_PID 2>/dev/null; wait $CORE_PID 2>/dev/null
