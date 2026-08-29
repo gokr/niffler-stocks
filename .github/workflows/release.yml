@@ -40,6 +40,10 @@ jobs:
           sudo cmake --install /tmp/nats.c/build
           echo /usr/local/lib | sudo tee /etc/ld.so.conf.d/libnats.conf >/dev/null
           sudo ldconfig
+          # nats-server: core spawns one when NIF_NATS_URL is unset
+          NATS_VER=$(curl -s https://api.github.com/repos/nats-io/nats-server/releases/latest | python3 -c "import json,sys;print(json.load(sys.stdin)['tag_name'].lstrip('v'))")
+          curl -sL "https://github.com/nats-io/nats-server/releases/download/v${NATS_VER}/nats-server-v${NATS_VER}-linux-amd64.tar.gz" | tar xz
+          sudo mv nats-server-v${NATS_VER}-linux-amd64/nats-server /usr/local/bin/
           cd niffler && nimble install -y -d
       - name: Compile check (every PR and tag)
         run: |
