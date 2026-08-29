@@ -32,8 +32,8 @@ proc nasdaqQuote(symbol: string): JsonNode =
   result = data
 
 proc parsePrice(s: string): float =
-  ## Parse "$1,234.56" style strings into a number.
-  result = s.replace("$", "").replace(",", "").strip().parseFloat()
+  ## Parse "$1,234.56" and "-0.42%" style strings into a number.
+  result = s.replace("$", "").replace(",", "").replace("%", "").strip().parseFloat()
 
 comp.tool:
   proc stock_quote(symbol: string): JsonNode =
@@ -51,5 +51,16 @@ comp.tool:
               "lastTrade": p{"lastTradeTimestamp"}.getStr(""),
               "fiftyTwoWeekRange":
                 q{"keyStats", "fiftyTwoWeekHighLow", "value"}.getStr("")}
+
+# Slash-command surface for interactive UIs (docs/WIRE.md): /quote becomes
+# available in the TUI with tab completion for the symbol argument, and runs
+# the same stock_quote tool.
+discard comp.slashCommand("quote",
+  "Latest quote for a US-listed stock (e.g. /quote NVDA)",
+  params = %*[
+    %*{"name": "symbol", "kind": "string",
+       "description": "ticker symbol, e.g. NBIS, AAPL or TSLA"}
+  ],
+  tool = "stock_quote")
 
 comp.run()
