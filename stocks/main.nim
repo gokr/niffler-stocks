@@ -36,7 +36,7 @@ proc parsePrice(s: string): float =
   result = s.replace("$", "").replace(",", "").replace("%", "").strip().parseFloat()
 
 comp.tool:
-  proc stock_quote(symbol: string): JsonNode =
+  proc stocks_quote(symbol: string): JsonNode =
     ## Latest quote for a US-listed stock: price, change, change percent,
     ## volume and 52-week range. Use for "what's the price of X?" questions.
     ## - symbol: ticker symbol, e.g. "NBIS", "AAPL" or "TSLA"
@@ -54,13 +54,13 @@ comp.tool:
 
 # Slash-command surface for interactive UIs (docs/WIRE.md): /quote becomes
 # available in the TUI with tab completion for the symbol argument, and runs
-# the same stock_quote tool.
+# the same stocks_quote tool.
 discard comp.slashCommand("quote",
   "Latest quote for a US-listed stock (e.g. /quote NVDA)",
   params = %*[
     %*{"name": "symbol", "kind": "string",
        "description": "ticker symbol, e.g. NBIS, AAPL or TSLA"}
   ],
-  tool = "stock_quote")
+  tool = "stocks_quote")
 
 comp.run()

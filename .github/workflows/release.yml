@@ -70,9 +70,9 @@ jobs:
           # preferred plugin CI: drive Niffler itself via the cli component
           ./var/bin/cli install gokr/niffler-stocks@$NIF_STOCKS_REF
           # validate the tools the spawned stocks component registered
-          ./var/bin/cli catalog | grep -q stock_quote
+          ./var/bin/cli catalog | grep -q stocks_quote
           # prove the tool works end-to-end against the live Nasdaq API
-          ./var/bin/cli call stock_quote '{"symbol":"AAPL"}' |
+          ./var/bin/cli call stocks_quote '{"symbol":"AAPL"}' |
             grep -q '"price"'
           echo "CI VERIFY OK"
           kill $CORE_PID 2>/dev/null; wait $CORE_PID 2>/dev/null

@@ -18,13 +18,13 @@ human-approved.
 
 One new tool:
 
-- `stock_quote {symbol}` — latest price, change, change percent, volume and
+- `stocks_quote {symbol}` — latest price, change, change percent, volume and
   52-week range for a US-listed ticker
 
 The component also declares a slash command for interactive UIs: once
 installed, the TUI (or any UI following `docs/WIRE.md`) offers `/quote
 <symbol>` with argument completion, implemented as a thin alias for the
-same `stock_quote` tool.
+same `stocks_quote` tool.
 
 ## Uninstall / update
 
